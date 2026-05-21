@@ -1,95 +1,115 @@
 import { GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GEMINI_API_KEY });
-
 const MODEL = 'gemini-1.5-flash';
 
-const parseJSONFromResponse = (text) => {
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-        throw new Error('Could not extract JSON array from AI response');
+// Lazy singleton — created on first call so the key is read after dotenv loads
+let _ai = null;
+const getAI = () => {
+    if (_ai) return _ai;
+
+    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+        const err = new Error(
+            'GOOGLE_GEMINI_API_KEY is not set. ' +
+            'Add your real Gemini API key to backend/.env and restart the server. ' +
+            'Get a free key at https://aistudio.google.com/app/apikey'
+        );
+        err.statusCode = 503;
+        throw err;
     }
+
+    _ai = new GoogleGenAI({ apiKey });
+    return _ai;
+};
+
+const parseJSONFromResponse = (text) => {
+    // Strip markdown code fences if Gemini wraps the JSON
+    const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const jsonMatch = clean.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('Could not extract JSON array from AI response');
     return JSON.parse(jsonMatch[0]);
 };
 
+// ── Generate flashcards ───────────────────────────────────────────────────────
 export const generateFlashcards = async (documentText, count = 10) => {
     const prompt = `Based on the following document text, generate exactly ${count} flashcards in JSON format.
-Each flashcard should have a "question", "answer", and "difficulty" (easy/medium/hard) field.
-Return ONLY a valid JSON array, no other text.
+Each flashcard must have "question", "answer", and "difficulty" (easy | medium | hard).
+Return ONLY a valid JSON array — no markdown, no explanation.
 
 Document text:
-${documentText.substring(0, 4000)}
+${documentText.substring(0, 8000)}
 
 Format:
 [
-    {
-        "question": "Question text?",
-        "answer": "Answer text",
-        "difficulty": "easy"
-    }
+  { "question": "...", "answer": "...", "difficulty": "medium" }
 ]`;
 
-    const response = await ai.models.generateContent({ model: MODEL, contents: prompt });
+    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
     return parseJSONFromResponse(response.text);
 };
 
+// ── Generate quiz ─────────────────────────────────────────────────────────────
 export const generateQuiz = async (documentText, questionCount = 5) => {
     const prompt = `Based on the following document text, generate exactly ${questionCount} multiple-choice quiz questions in JSON format.
-Each question must have exactly 4 options, one correctAnswer (must match one of the options exactly), and an explanation.
-Return ONLY a valid JSON array, no other text.
+Each question must have exactly 4 options, a correctAnswer that exactly matches one of the options, and an explanation.
+Return ONLY a valid JSON array — no markdown, no explanation.
 
 Document text:
-${documentText.substring(0, 4000)}
+${documentText.substring(0, 8000)}
 
 Format:
 [
-    {
-        "question": "Question text?",
-        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-        "correctAnswer": "Option 1",
-        "explanation": "Why this is correct",
-        "difficulty": "medium"
-    }
+  {
+    "question": "...",
+    "options": ["A", "B", "C", "D"],
+    "correctAnswer": "A",
+    "explanation": "...",
+    "difficulty": "medium"
+  }
 ]`;
 
-    const response = await ai.models.generateContent({ model: MODEL, contents: prompt });
+    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
     return parseJSONFromResponse(response.text);
 };
 
+// ── Generate summary ──────────────────────────────────────────────────────────
 export const generateSummary = async (documentText) => {
-    const prompt = `Please provide a comprehensive summary of the following document.
-The summary should be clear, concise, and cover all key points.
+    const prompt = `Provide a comprehensive, well-structured summary of the following document.
+Cover all key points clearly and concisely.
 
 Document text:
 ${documentText}`;
 
-    const response = await ai.models.generateContent({ model: MODEL, contents: prompt });
+    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
     return response.text;
 };
 
+// ── Explain concept ───────────────────────────────────────────────────────────
 export const explainConcept = async (concept, documentText) => {
-    const prompt = `Based on the following document, provide a detailed explanation of "${concept}".
-Include real examples from the document if available.
+    const prompt = `Based on the following document, explain "${concept}" in detail.
+Use examples from the document where possible. If the concept is not covered, say so clearly.
 
 Document text:
 ${documentText}`;
 
-    const response = await ai.models.generateContent({ model: MODEL, contents: prompt });
+    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
     return response.text;
 };
 
+// ── Chat with document ────────────────────────────────────────────────────────
 export const chatWithDocument = async (question, documentText, conversationHistory = []) => {
-    let conversationContext = 'You are a helpful AI tutor. Answer questions based only on the provided document.\n\n';
-    conversationContext += `Document content:\n${documentText.substring(0, 3000)}\n\n`;
+    let context = 'You are a helpful AI tutor. Answer questions using only the provided document.\n\n';
+    context += `Document:\n${documentText.substring(0, 6000)}\n\n`;
 
     if (conversationHistory.length > 0) {
-        conversationContext += 'Previous conversation:\n';
-        conversationHistory.forEach((msg) => {
-            conversationContext += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
+        context += 'Previous conversation:\n';
+        conversationHistory.slice(-6).forEach((msg) => {   // keep last 3 pairs max
+            context += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
         });
+        context += '\n';
     }
 
-    const prompt = `${conversationContext}\nUser: ${question}\n\nAssistant:`;
-    const response = await ai.models.generateContent({ model: MODEL, contents: prompt });
+    const prompt = `${context}User: ${question}\n\nAssistant:`;
+    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
     return response.text;
 };

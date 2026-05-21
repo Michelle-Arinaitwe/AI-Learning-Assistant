@@ -4,10 +4,17 @@ let _client = null;
 
 const getClient = () => {
     if (!_client) {
-        if (!process.env.GOOGLE_GEMINI_API_KEY) {
-            throw new Error('GOOGLE_GEMINI_API_KEY is not set in environment variables');
+        const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+        if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+            const err = new Error(
+                'GOOGLE_GEMINI_API_KEY is not set. ' +
+                'Add your real Gemini API key to backend/.env and restart the server. ' +
+                'Get a free key at https://aistudio.google.com/app/apikey'
+            );
+            err.statusCode = 503;
+            throw err;
         }
-        _client = new GoogleGenAI({ apiKey: process.env.GOOGLE_GEMINI_API_KEY });
+        _client = new GoogleGenAI({ apiKey });
     }
     return _client;
 };

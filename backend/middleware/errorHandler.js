@@ -2,6 +2,27 @@ const errorHandler = (err, req, res, next) => {
     let statusCode = err.statusCode || 500;
     let message = err.message || 'Server Error';
 
+    // Google Gemini / GenAI SDK errors — parse the JSON body they embed in message
+    if (err.name === 'ApiError' || (err.constructor && err.constructor.name === 'ApiError')) {
+        try {
+            const body = typeof err.message === 'string' ? JSON.parse(err.message) : err.message;
+            const code = body?.error?.code;
+            if (code === 429) {
+                statusCode = 429;
+                message = 'AI quota exceeded. You have hit the Gemini API rate limit. Please wait and try again.';
+            } else if (code === 400) {
+                statusCode = 400;
+                message = body?.error?.message || 'AI request was invalid.';
+            } else if (code === 404) {
+                statusCode = 503;
+                message = 'The configured AI model is unavailable. Contact the administrator.';
+            } else {
+                statusCode = code || 502;
+                message = body?.error?.message || message;
+            }
+        } catch { /* leave message as-is if not parseable JSON */ }
+    }
+
     //Mongoose bad ObjectId
     if (err.name === 'CastError') {
         message = 'Resource not found';

@@ -8,12 +8,14 @@ import connectDB from './config/db.js';
 import { fileURLToPath } from 'url';
 import errorHandler from './middleware/errorHandler.js';
 
+import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 import flashcardRoutes from './routes/flashcardRoutes.js';
 import quizRoutes from './routes/quizRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import devRoutes from './routes/devRoutes.js';
 
 import dns from 'node:dns';
 dns.setServers(['8.8.8.8', '1.1.1.1']);
@@ -39,9 +41,16 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Health check
+// Health check — includes DB connection state
 app.get('/api/health', (req, res) => {
-    res.status(200).json({ success: true, message: 'API is running' });
+    const dbState = mongoose.connection.readyState;
+    // 0=disconnected 1=connected 2=connecting 3=disconnecting
+    const dbReady = dbState === 1;
+    res.status(dbReady ? 200 : 503).json({
+        success: dbReady,
+        message: dbReady ? 'API is running' : 'API starting — waiting for DB',
+        dbState
+    });
 });
 
 // Routes
@@ -51,6 +60,11 @@ app.use('/api/flashcards', flashcardRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+// Dev-only seed/cleanup routes — disabled in production
+if (process.env.NODE_ENV !== 'production') {
+    app.use('/api/dev', devRoutes);
+}
 
 // 404 handler — must be before errorHandler
 app.use((req, res, next) => {

@@ -3,9 +3,9 @@ import mongoose from "mongoose";
 const connectDB = async () => {
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
-            connectTimeoutMS: 60000,
-            socketTimeoutMS: 60000,
-            serverSelectionTimeoutMS: 60000,
+            connectTimeoutMS: 15000,
+            socketTimeoutMS: 45000,
+            serverSelectionTimeoutMS: 15000,  // fail fast, retry via setTimeout
             retryWrites: true,
             w: 'majority'
         });

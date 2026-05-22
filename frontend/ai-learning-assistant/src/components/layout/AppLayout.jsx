@@ -1,9 +1,17 @@
-import React from 'react'
+import React from 'react';
 
-const AppLayout = () => {
+// AppLayout wraps every protected page.
+// Add your nav bar, sidebar, footer here as the UI develops.
+const AppLayout = ({ children }) => {
   return (
-    <div>AppLayout</div>
-  )
-}
+    <div className="min-h-screen bg-gray-50">
+      {/* TODO: add <Navbar /> here */}
+      <main className="w-full">
+        {children}
+      </main>
+      {/* TODO: add <Footer /> here */}
+    </div>
+  );
+};
 
-export default AppLayout
+export default AppLayout;

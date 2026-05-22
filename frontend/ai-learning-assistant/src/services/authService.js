@@ -38,10 +38,10 @@ export const getProfile = async () => {
 };
 
 /**
- * Log out — clear localStorage and redirect to /login.
+ * Clear localStorage auth keys.
+ * Prefer calling logout() from AuthContext instead — it also updates React state.
  */
-export const logout = () => {
+export const clearAuthStorage = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
-  window.location.href = '/login';
 };

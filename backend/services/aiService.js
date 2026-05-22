@@ -1,29 +1,44 @@
-import { GoogleGenAI } from '@google/genai';
+import Groq from 'groq-sdk';
 
-const MODEL = 'gemini-2.0-flash';
+const MODEL = 'llama-3.3-70b-versatile';
 
 // Lazy singleton — created on first call so the key is read after dotenv loads
 let _ai = null;
 const getAI = () => {
     if (_ai) return _ai;
 
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-    if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey || apiKey.trim() === '' || apiKey === 'your_groq_api_key_here') {
         const err = new Error(
-            'GOOGLE_GEMINI_API_KEY is not set. ' +
-            'Add your real Gemini API key to backend/.env and restart the server. ' +
-            'Get a free key at https://aistudio.google.com/app/apikey'
+            'GROQ_API_KEY is not set. ' +
+            'Get a free key at https://console.groq.com, add it to backend/.env, then restart the server.'
         );
         err.statusCode = 503;
         throw err;
     }
 
-    _ai = new GoogleGenAI({ apiKey });
+    _ai = new Groq({ apiKey });
     return _ai;
 };
 
+// Call Groq and return the text response
+const complete = async (prompt) => {
+    try {
+        const response = await getAI().chat.completions.create({
+            messages: [{ role: 'user', content: prompt }],
+            model: MODEL,
+            temperature: 0.7,
+        });
+        return response.choices[0]?.message?.content || '';
+    } catch (err) {
+        // Normalize Groq SDK HTTP status into statusCode so errorHandler picks it up
+        if (err.status && !err.statusCode) err.statusCode = err.status;
+        throw err;
+    }
+};
+
 const parseJSONFromResponse = (text) => {
-    // Strip markdown code fences if Gemini wraps the JSON
+    // Strip markdown code fences if the model wraps the JSON
     const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
     const jsonMatch = clean.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('Could not extract JSON array from AI response');
@@ -44,8 +59,8 @@ Format:
   { "question": "...", "answer": "...", "difficulty": "medium" }
 ]`;
 
-    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
-    return parseJSONFromResponse(response.text);
+    const text = await complete(prompt);
+    return parseJSONFromResponse(text);
 };
 
 // ── Generate quiz ─────────────────────────────────────────────────────────────
@@ -68,8 +83,8 @@ Format:
   }
 ]`;
 
-    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
-    return parseJSONFromResponse(response.text);
+    const text = await complete(prompt);
+    return parseJSONFromResponse(text);
 };
 
 // ── Generate summary ──────────────────────────────────────────────────────────
@@ -80,8 +95,7 @@ Cover all key points clearly and concisely.
 Document text:
 ${documentText}`;
 
-    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
-    return response.text;
+    return await complete(prompt);
 };
 
 // ── Explain concept ───────────────────────────────────────────────────────────
@@ -92,24 +106,37 @@ Use examples from the document where possible. If the concept is not covered, sa
 Document text:
 ${documentText}`;
 
-    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
-    return response.text;
+    return await complete(prompt);
 };
 
 // ── Chat with document ────────────────────────────────────────────────────────
 export const chatWithDocument = async (question, documentText, conversationHistory = []) => {
-    let context = 'You are a helpful AI tutor. Answer questions using only the provided document.\n\n';
-    context += `Document:\n${documentText.substring(0, 6000)}\n\n`;
+    const messages = [
+        {
+            role: 'system',
+            content: `You are a helpful AI tutor. Answer questions using only the provided document.\n\nDocument:\n${documentText.substring(0, 6000)}`
+        }
+    ];
 
-    if (conversationHistory.length > 0) {
-        context += 'Previous conversation:\n';
-        conversationHistory.slice(-6).forEach((msg) => {   // keep last 3 pairs max
-            context += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
+    // Include last 6 messages of history (3 user/assistant pairs)
+    conversationHistory.slice(-6).forEach((msg) => {
+        messages.push({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.content
         });
-        context += '\n';
-    }
+    });
 
-    const prompt = `${context}User: ${question}\n\nAssistant:`;
-    const response = await getAI().models.generateContent({ model: MODEL, contents: prompt });
-    return response.text;
+    messages.push({ role: 'user', content: question });
+
+    try {
+        const response = await getAI().chat.completions.create({
+            messages,
+            model: MODEL,
+            temperature: 0.7,
+        });
+        return response.choices[0]?.message?.content || '';
+    } catch (err) {
+        if (err.status && !err.statusCode) err.statusCode = err.status;
+        throw err;
+    }
 };

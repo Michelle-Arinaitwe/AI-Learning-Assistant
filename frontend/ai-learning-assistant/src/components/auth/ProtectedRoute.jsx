@@ -1,15 +1,19 @@
-import React from 'react'
-import { Outlet } from 'react-router-dom';
+import React from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import AppLayout from '../layout/AppLayout';
 
 const ProtectedRoute = () => {
-    const isAuthenticated = true; // This should come from your auth context or state
-    const loading = false;
+  const { isAuthenticated, loading } = useAuth();
 
-    if (loading) {
-        return 
-        <div>Loading...</div>;
-    }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-500 text-sm">Loading...</p>
+      </div>
+    );
+  }
+
   return isAuthenticated ? (
     <AppLayout>
       <Outlet />
@@ -17,6 +21,6 @@ const ProtectedRoute = () => {
   ) : (
     <Navigate to="/login" replace />
   );
-}
+};
 
 export default ProtectedRoute;

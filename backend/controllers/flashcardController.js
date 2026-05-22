@@ -248,6 +248,53 @@ export const deleteFlashcardCard = async (req, res, next) => {
     }
 };
 
+// @desc    Mark a single card as read / unread (toggle)
+// @route   PUT /api/flashcards/:flashcardId/mark-read/:cardIndex
+// @access  Private
+export const markCardAsRead = async (req, res, next) => {
+    try {
+        const { flashcardId, cardIndex } = req.params;
+
+        const flashcard = await Flashcard.findById(flashcardId);
+
+        if (!flashcard) {
+            return res.status(404).json({
+                success: false,
+                error: 'Flashcard set not found',
+                statusCode: 404
+            });
+        }
+
+        if (flashcard.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized to modify this flashcard',
+                statusCode: 403
+            });
+        }
+
+        const card = flashcard.cards[cardIndex];
+        if (!card) {
+            return res.status(404).json({
+                success: false,
+                error: 'Card not found',
+                statusCode: 404
+            });
+        }
+
+        card.isRead = !card.isRead;
+        await flashcard.save();
+
+        res.status(200).json({
+            success: true,
+            data: flashcard,
+            message: `Card marked as ${card.isRead ? 'read' : 'unread'}`
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Get starred flashcards
 // @route   GET /api/flashcards/starred/all
 // @access  Private

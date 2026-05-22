@@ -37,6 +37,10 @@ const flashcardSchema = new mongoose.Schema({
             isStarred: {
                 type: Boolean,
                 default: false
+            },
+            isRead: {
+                type: Boolean,
+                default: false
             }
         }
     ]

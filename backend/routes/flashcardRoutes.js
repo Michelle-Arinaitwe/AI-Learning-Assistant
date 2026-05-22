@@ -5,6 +5,7 @@ import {
     getAllFlashcards,
     reviewFlashcard,
     toggleFavorite,
+    markCardAsRead,
     deleteFlashcard,
     deleteFlashcardCard,
     getStarredFlashcards
@@ -23,6 +24,7 @@ router.get('/document/:documentId', getFlashcardsByDocument);
 // Update flashcards
 router.put('/:flashcardId/review/:cardIndex', reviewFlashcard);
 router.put('/:flashcardId/toggle-favorite/:cardIndex', toggleFavorite);
+router.put('/:flashcardId/mark-read/:cardIndex', markCardAsRead);
 
 // Delete flashcards
 router.delete('/:flashcardId', deleteFlashcard);

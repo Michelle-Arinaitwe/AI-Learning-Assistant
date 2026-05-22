@@ -122,11 +122,12 @@ export const submitQuiz = async (req, res, next) => {
             });
         }
 
-        // Process answers
+        // Process answers — accept plain strings ["A","B"] or objects [{selectedAnswer:"A"}]
         let correctCount = 0;
         const processedAnswers = userAnswers.map((answer, index) => {
             const question = quiz.questions[index];
-            const isCorrect = question && answer.selectedAnswer === question.correctAnswer;
+            const selectedAnswer = typeof answer === 'string' ? answer : answer.selectedAnswer;
+            const isCorrect = question && selectedAnswer === question.correctAnswer;
 
             if (isCorrect) {
                 correctCount++;
@@ -134,7 +135,7 @@ export const submitQuiz = async (req, res, next) => {
 
             return {
                 questionIndex: index,
-                selectedAnswer: answer.selectedAnswer,
+                selectedAnswer,
                 isCorrect
             };
         });

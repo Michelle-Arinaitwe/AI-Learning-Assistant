@@ -21,7 +21,9 @@ export const register = async (data) => {
  */
 export const login = async (credentials) => {
   const response = await axiosInstance.post(API_PATHS.AUTH.LOGIN, credentials);
-  const { token, data: user } = response.data;
+  // Backend shape: { success, data: { user, token }, message }
+  // token lives inside response.data.data, not response.data
+  const { token, user } = response.data.data;
   if (token) {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));

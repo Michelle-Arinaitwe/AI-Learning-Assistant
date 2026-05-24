@@ -1,11 +1,9 @@
-// ─────────────────────────────────────────────────────────────────────────────
+
 // API Paths — single source of truth for every backend endpoint.
 // Import from here instead of hard-coding URLs in services or components.
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const API_PATHS = {
-
-  // ── Auth ────────────────────────────────────────────────────────────────────
+//Authentication & User Management
   AUTH: {
     REGISTER:  '/auth/register',
     LOGIN:     '/auth/login',
@@ -13,7 +11,7 @@ export const API_PATHS = {
     LOGOUT:    '/auth/logout',
   },
 
-  // ── Documents ───────────────────────────────────────────────────────────────
+  //Documents & File Management
   DOCUMENTS: {
     GET_ALL:   '/documents',
     UPLOAD:    '/documents',
@@ -21,7 +19,7 @@ export const API_PATHS = {
     DELETE:    (id)       => `/documents/${id}`,
   },
 
-  // ── Flashcards ──────────────────────────────────────────────────────────────
+  //Flashcards
   FLASHCARDS: {
     GET_ALL:        '/flashcards',
     GET_STARRED:    '/flashcards/starred/all',
@@ -33,7 +31,7 @@ export const API_PATHS = {
     DELETE_SET:     (flashcardId)             => `/flashcards/${flashcardId}`,
   },
 
-  // ── Quizzes ─────────────────────────────────────────────────────────────────
+  //Quizzes
   QUIZZES: {
     GET_ALL:        '/quizzes',
     GET_BY_DOCUMENT:(documentId) => `/quizzes/document/${documentId}`,
@@ -43,7 +41,7 @@ export const API_PATHS = {
     DELETE:         (quizId)     => `/quizzes/${quizId}`,
   },
 
-  // ── AI ──────────────────────────────────────────────────────────────────────
+  //ai
   AI: {
     GENERATE_FLASHCARDS:(documentId) => `/ai/generate-flashcards/${documentId}`,
     GENERATE_QUIZ:      (documentId) => `/ai/generate-quiz/${documentId}`,
@@ -53,7 +51,7 @@ export const API_PATHS = {
     CHAT_HISTORY:       (documentId) => `/ai/chat-history/${documentId}`,
   },
 
-  // ── Dashboard ───────────────────────────────────────────────────────────────
+  //Dashboard & Analytics
   DASHBOARD: {
     OVERVIEW: '/dashboard/overview',
     STATS:    '/dashboard/stats',

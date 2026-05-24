@@ -44,7 +44,8 @@ export const AuthProvider = ({ children }) => {
   // ── Register ───────────────────────────────────────────────────────────────
   const register = async (userData) => {
     const response = await authService.register(userData);
-    const { token: newToken, data: newUser } = response;
+    // authService.register returns response.data: { success, data: { user, token }, message }
+    const { token: newToken, user: newUser } = response.data;
     if (newToken) {
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(newUser));
@@ -58,7 +59,8 @@ export const AuthProvider = ({ children }) => {
   // ── Login ──────────────────────────────────────────────────────────────────
   const login = async (credentials) => {
     const response = await authService.login(credentials);
-    const { token: newToken, data: newUser } = response;
+    // authService.login returns response.data: { success, data: { user, token }, message }
+    const { token: newToken, user: newUser } = response.data;
     if (newToken) {
       setToken(newToken);
       setUser(newUser);

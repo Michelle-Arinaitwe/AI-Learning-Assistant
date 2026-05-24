@@ -13,7 +13,7 @@ Authorization: Bearer <your_jwt_token>
 
 ---
 
-## 📚 Authentication APIs
+## Authentication APIs
 
 ### 1. Register User
 - **POST** `/auth/register`

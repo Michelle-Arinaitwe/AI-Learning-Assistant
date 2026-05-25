@@ -6,8 +6,8 @@ import toast from 'react-hot-toast';
 
 const LoginPage = () => {
 
-  const [email, setEmail] = useState('michelleesther075@gmail.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
@@ -121,12 +121,9 @@ const LoginPage = () => {
           </div>
         </div>
 
-        {/*subtle footer text*/}
-        <div className='text-center text-xs text-slate-500 mt-6'>
-          <p>By continuing, you agree to our Terms and Privacy Policy.</p>
+    
         </div>
-      </div>
-    </div>
+      </div> 
   )
 }
 

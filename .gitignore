@@ -2,10 +2,12 @@
 node_modules/
 **/node_modules/
 
-# Environment variables
+# Environment variables — never commit secrets
 .env
+.env.*
 .env.local
 .env.*.local
+backend/.env
 
 # Uploaded files
 backend/uploads/documents/*
@@ -28,3 +30,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Temporary / test artifacts
+backend/test_sample.txt
+backend/*.tmp
